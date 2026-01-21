@@ -10,9 +10,16 @@ import SwiftData
 
 @main
 struct SaverrApp: App {
+    @State private var authManager = AuthenticationManager()
+
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
-            Item.self,
+            BankAccount.self,
+            Transaction.self,
+            FinancialGoal.self,
+            ChatMessage.self,
+            Category.self,
+            FinancialPlan.self
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 
@@ -25,7 +32,9 @@ struct SaverrApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            RootView()
+                .environment(\.services, ServiceContainer.shared)
+                .environment(\.authManager, authManager)
         }
         .modelContainer(sharedModelContainer)
     }
