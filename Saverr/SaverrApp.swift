@@ -11,6 +11,7 @@ import SwiftData
 @main
 struct SaverrApp: App {
     @State private var authManager = AuthenticationManager()
+    @State private var plaidManager = PlaidManager()
 
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
@@ -35,6 +36,7 @@ struct SaverrApp: App {
             RootView()
                 .environment(\.services, ServiceContainer.shared)
                 .environment(\.authManager, authManager)
+                .environment(\.plaidManager, plaidManager)
         }
         .modelContainer(sharedModelContainer)
     }

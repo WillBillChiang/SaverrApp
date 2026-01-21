@@ -8,10 +8,11 @@
 import SwiftUI
 
 struct ContentView: View {
-    @State private var selectedTab: Tab = .accounts
+    @State private var selectedTab: Tab = .spending
     @Environment(\.colorScheme) var colorScheme
 
     enum Tab: String, CaseIterable {
+        case spending = "Spending"
         case accounts = "Accounts"
         case insights = "Insights"
         case chat = "AI Chat"
@@ -20,6 +21,7 @@ struct ContentView: View {
 
         var iconName: String {
             switch self {
+            case .spending: return "creditcard"
             case .accounts: return "building.columns"
             case .insights: return "chart.pie"
             case .chat: return "bubble.left.and.bubble.right"
@@ -30,6 +32,7 @@ struct ContentView: View {
 
         var selectedIconName: String {
             switch self {
+            case .spending: return "creditcard.fill"
             case .accounts: return "building.columns.fill"
             case .insights: return "chart.pie.fill"
             case .chat: return "bubble.left.and.bubble.right.fill"
@@ -41,6 +44,12 @@ struct ContentView: View {
 
     var body: some View {
         TabView(selection: $selectedTab) {
+            SpendingDashboardView()
+                .tabItem {
+                    Label(Tab.spending.rawValue, systemImage: selectedTab == .spending ? Tab.spending.selectedIconName : Tab.spending.iconName)
+                }
+                .tag(Tab.spending)
+            
             AccountsView()
                 .tabItem {
                     Label(Tab.accounts.rawValue, systemImage: selectedTab == .accounts ? Tab.accounts.selectedIconName : Tab.accounts.iconName)
@@ -79,4 +88,5 @@ struct ContentView: View {
     ContentView()
         .environment(\.services, ServiceContainer.shared)
         .environment(\.authManager, AuthenticationManager())
+        .environment(\.plaidManager, PlaidManager())
 }
