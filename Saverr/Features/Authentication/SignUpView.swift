@@ -18,6 +18,8 @@ struct SignUpView: View {
     @State private var confirmPassword = ""
     @State private var showPassword = false
     @State private var agreeToTerms = false
+    @State private var showEmailVerification = false
+    @State private var verificationEmail = ""
 
     var passwordsMatch: Bool {
         !password.isEmpty && password == confirmPassword
@@ -25,7 +27,7 @@ struct SignUpView: View {
 
     var isFormValid: Bool {
         !name.isEmpty && !email.isEmpty && email.contains("@") &&
-        password.count >= 6 && passwordsMatch && agreeToTerms
+        password.count >= 8 && passwordsMatch && agreeToTerms
     }
 
     var body: some View {
@@ -60,6 +62,26 @@ struct SignUpView: View {
                     Button("Cancel") {
                         dismiss()
                     }
+                }
+            }
+            .sheet(isPresented: $showEmailVerification) {
+                EmailVerificationView(email: verificationEmail) {
+                    showEmailVerification = false
+                    // After verification, try to login
+                    Task {
+                        await authManager.login(email: verificationEmail, password: password)
+                        if authManager.isAuthenticated {
+                            dismiss()
+                        }
+                    }
+                }
+                .id(verificationEmail) // Force recreate when email changes
+            }
+            .onChange(of: authManager.authState) { _, newState in
+                // Handle verification required state
+                if case .needsVerification(let email) = newState {
+                    verificationEmail = email
+                    showEmailVerification = true
                 }
             }
         }
@@ -103,10 +125,10 @@ struct SignUpView: View {
             formField(title: "Password", icon: "lock") {
                 HStack {
                     if showPassword {
-                        TextField("At least 6 characters", text: $password)
+                        TextField("At least 8 characters", text: $password)
                             .textFieldStyle(.plain)
                     } else {
-                        SecureField("At least 6 characters", text: $password)
+                        SecureField("At least 8 characters", text: $password)
                             .textFieldStyle(.plain)
                     }
 
@@ -118,11 +140,15 @@ struct SignUpView: View {
                     }
                 }
             }
-
-            // Password strength indicator
-            if !password.isEmpty {
-                passwordStrengthIndicator
+            
+            // Password requirements
+            VStack(alignment: .leading, spacing: 4) {
+                passwordRequirement("At least 8 characters", met: password.count >= 8)
+                passwordRequirement("Contains uppercase letter", met: password.contains(where: { $0.isUppercase }))
+                passwordRequirement("Contains lowercase letter", met: password.contains(where: { $0.isLowercase }))
+                passwordRequirement("Contains number", met: password.contains(where: { $0.isNumber }))
             }
+            .padding(.top, -8)
 
             // Confirm Password Field
             formField(title: "Confirm Password", icon: "lock.fill") {
@@ -172,49 +198,16 @@ struct SignUpView: View {
             .clipShape(RoundedRectangle(cornerRadius: 12))
         }
     }
-
-    private var passwordStrengthIndicator: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 4) {
-                ForEach(0..<4) { index in
-                    RoundedRectangle(cornerRadius: 2)
-                        .fill(index < passwordStrength ? strengthColor : (colorScheme == .dark ? Color.white.opacity(0.1) : Color.black.opacity(0.1)))
-                        .frame(height: 4)
-                }
-            }
-
-            Text(strengthText)
-                .font(.caption)
-                .foregroundStyle(strengthColor)
-        }
-    }
-
-    private var passwordStrength: Int {
-        var strength = 0
-        if password.count >= 6 { strength += 1 }
-        if password.count >= 8 { strength += 1 }
-        if password.contains(where: { $0.isNumber }) { strength += 1 }
-        if password.contains(where: { $0.isUppercase }) { strength += 1 }
-        return strength
-    }
-
-    private var strengthText: String {
-        switch passwordStrength {
-        case 0: return "Very Weak"
-        case 1: return "Weak"
-        case 2: return "Fair"
-        case 3: return "Good"
-        case 4: return "Strong"
-        default: return ""
-        }
-    }
-
-    private var strengthColor: Color {
-        switch passwordStrength {
-        case 0, 1: return .dangerColor
-        case 2: return .warningColor
-        case 3, 4: return .successColor
-        default: return .gray
+    
+    private func passwordRequirement(_ text: String, met: Bool) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: met ? "checkmark.circle.fill" : "circle")
+                .font(.caption2)
+                .foregroundStyle(met ? Color.successColor : (colorScheme == .dark ? Color.textSecondaryDark : Color.textSecondaryLight))
+            
+            Text(text)
+                .font(.caption2)
+                .foregroundStyle(met ? Color.successColor : (colorScheme == .dark ? Color.textSecondaryDark : Color.textSecondaryLight))
         }
     }
 
@@ -244,9 +237,7 @@ struct SignUpView: View {
         Button {
             Task {
                 await authManager.signUp(name: name, email: email, password: password)
-                if authManager.isAuthenticated {
-                    dismiss()
-                }
+                // The onChange handler will show verification sheet if needed
             }
         } label: {
             HStack(spacing: 8) {

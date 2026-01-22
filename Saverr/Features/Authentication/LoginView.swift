@@ -7,6 +7,11 @@
 
 import SwiftUI
 
+// Helper to make String work with sheet(item:)
+extension String: Identifiable {
+    public var id: String { self }
+}
+
 struct LoginView: View {
     @Environment(\.colorScheme) var colorScheme
     @Environment(\.authManager) var authManager
@@ -15,6 +20,8 @@ struct LoginView: View {
     @State private var password = ""
     @State private var showSignUp = false
     @State private var showPassword = false
+    @State private var showForgotPassword = false
+    @State private var pendingVerificationEmail: String?
 
     var body: some View {
         ZStack {
@@ -35,12 +42,6 @@ struct LoginView: View {
                     // Login Button
                     loginButton
 
-                    // Divider
-                    dividerSection
-
-                    // Social Login (Mock)
-                    socialLoginSection
-
                     // Sign Up Link
                     signUpSection
 
@@ -52,6 +53,25 @@ struct LoginView: View {
         .sheet(isPresented: $showSignUp) {
             SignUpView()
         }
+        .sheet(isPresented: $showForgotPassword) {
+            ForgotPasswordView()
+        }
+        .sheet(item: $pendingVerificationEmail) { emailToVerify in
+            EmailVerificationView(email: emailToVerify) {
+                pendingVerificationEmail = nil
+                // After verification, try to login
+                Task {
+                    await authManager.login(email: emailToVerify, password: password)
+                }
+            }
+        }
+        .onChange(of: authManager.authState) { _, newState in
+            
+            // Handle verification required state
+            if case .needsVerification(let email) = newState {
+                pendingVerificationEmail = email
+            }
+        }
     }
 
     // MARK: - Subviews
@@ -59,21 +79,11 @@ struct LoginView: View {
     private var headerSection: some View {
         VStack(spacing: 16) {
             // App Icon
-            ZStack {
-                Circle()
-                    .fill(
-                        LinearGradient(
-                            colors: [Color.accentPrimary, Color(hex: "#45B7D1")],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .frame(width: 80, height: 80)
+            Image("Saverr_logo")
+                .resizable()
+                .scaledToFit()
+                .frame(width: 80, height: 80)
 
-                Image(systemName: "dollarsign.circle.fill")
-                    .font(.system(size: 40))
-                    .foregroundStyle(.white)
-            }
 
             VStack(spacing: 8) {
                 Text("Welcome to Saverr")
@@ -150,7 +160,7 @@ struct LoginView: View {
             HStack {
                 Spacer()
                 Button("Forgot password?") {
-                    // Handle forgot password
+                    showForgotPassword = true
                 }
                 .font(.subheadline)
                 .foregroundStyle(Color.accentPrimary)
@@ -195,51 +205,6 @@ struct LoginView: View {
             .clipShape(RoundedRectangle(cornerRadius: 12))
         }
         .disabled(authManager.isLoading)
-    }
-
-    private var dividerSection: some View {
-        HStack(spacing: 16) {
-            Rectangle()
-                .fill(colorScheme == .dark ? Color.white.opacity(0.1) : Color.black.opacity(0.1))
-                .frame(height: 1)
-
-            Text("or")
-                .font(.subheadline)
-                .foregroundStyle(colorScheme == .dark ? Color.textSecondaryDark : Color.textSecondaryLight)
-
-            Rectangle()
-                .fill(colorScheme == .dark ? Color.white.opacity(0.1) : Color.black.opacity(0.1))
-                .frame(height: 1)
-        }
-    }
-
-    private var socialLoginSection: some View {
-        VStack(spacing: 12) {
-            socialButton(icon: "apple.logo", title: "Continue with Apple", color: colorScheme == .dark ? .white : .black)
-            socialButton(icon: "g.circle.fill", title: "Continue with Google", color: Color(hex: "#4285F4"))
-        }
-    }
-
-    private func socialButton(icon: String, title: String, color: Color) -> some View {
-        Button {
-            // Handle social login
-        } label: {
-            HStack(spacing: 12) {
-                Image(systemName: icon)
-                    .font(.title3)
-                Text(title)
-                    .fontWeight(.medium)
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 14)
-            .foregroundStyle(colorScheme == .dark ? Color.textPrimaryDark : Color.textPrimaryLight)
-            .background(colorScheme == .dark ? Color.cardBackgroundDark : Color.cardBackgroundLight)
-            .clipShape(RoundedRectangle(cornerRadius: 12))
-            .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(colorScheme == .dark ? Color.white.opacity(0.1) : Color.black.opacity(0.1), lineWidth: 1)
-            )
-        }
     }
 
     private var signUpSection: some View {

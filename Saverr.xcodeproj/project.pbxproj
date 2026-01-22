@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		67C867D02F22E0E100F6BE3B /* LinkKit in Frameworks */ = {isa = PBXBuildFile; productRef = 67C867CF2F22E0E100F6BE3B /* LinkKit */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		CDF335D32F21639A00C23E6D /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -52,6 +56,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				67C867D02F22E0E100F6BE3B /* LinkKit in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -112,6 +117,7 @@
 			);
 			name = Saverr;
 			packageProductDependencies = (
+				67C867CF2F22E0E100F6BE3B /* LinkKit */,
 			);
 			productName = Saverr;
 			productReference = CDF335C32F21639800C23E6D /* Saverr.app */;
@@ -195,6 +201,9 @@
 			);
 			mainGroup = CDF335BA2F21639800C23E6D;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				67C867CE2F22E0E100F6BE3B /* XCRemoteSwiftPackageReference "plaid-link-ios" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = CDF335C42F21639800C23E6D /* Products */;
 			projectDirPath = "";
@@ -578,6 +587,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		67C867CE2F22E0E100F6BE3B /* XCRemoteSwiftPackageReference "plaid-link-ios" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/plaid/plaid-link-ios";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 6.4.3;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		67C867CF2F22E0E100F6BE3B /* LinkKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 67C867CE2F22E0E100F6BE3B /* XCRemoteSwiftPackageReference "plaid-link-ios" */;
+			productName = LinkKit;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = CDF335BB2F21639800C23E6D /* Project object */;
 }

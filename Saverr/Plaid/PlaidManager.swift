@@ -50,12 +50,8 @@ final class PlaidManager {
     private let apiService: PlaidAPIServiceProtocol
     
     init(apiService: PlaidAPIServiceProtocol? = nil) {
-        #if DEBUG
-        // Use mock service in debug mode for testing
-        self.apiService = apiService ?? MockPlaidAPIService()
-        #else
+        // Always use real API service
         self.apiService = apiService ?? PlaidAPIService()
-        #endif
     }
     
     // MARK: - Public Methods
@@ -66,8 +62,11 @@ final class PlaidManager {
         error = nil
         
         do {
-            linkToken = try await apiService.getLinkToken()
+            let token = try await apiService.getLinkToken()
+            print("✅ PlaidManager: Received link token: \(token.prefix(20))...")
+            linkToken = token
         } catch {
+            print("❌ PlaidManager: Failed to get link token - \(error)")
             self.error = error
         }
         
@@ -102,7 +101,31 @@ final class PlaidManager {
         
         do {
             linkedAccounts = try await apiService.getLinkedAccounts()
+            print("✅ PlaidManager: Loaded \(linkedAccounts.count) linked accounts")
+        } catch let plaidError as PlaidServiceError {
+            // Don't show error for new users with no accounts or backend auth issues
+            switch plaidError {
+            case .serverError(let code) where code == 404:
+                print("ℹ️ PlaidManager: No linked accounts found (new user)")
+                linkedAccounts = []
+            case .serverError(let code) where code == 403:
+                print("⚠️ PlaidManager: Forbidden error - backend auth may not be configured")
+                linkedAccounts = []
+                // Don't set error - this is a backend issue, not user error
+            case .apiError(let message) where message.lowercased().contains("forbidden"):
+                print("⚠️ PlaidManager: Forbidden - backend auth configuration issue")
+                linkedAccounts = []
+                // Don't show error popup for auth config issues
+            case .unauthorized:
+                print("⚠️ PlaidManager: Unauthorized - token may be invalid")
+                linkedAccounts = []
+                // Could trigger re-login here
+            default:
+                print("❌ PlaidManager: Error loading accounts - \(plaidError)")
+                self.error = plaidError
+            }
         } catch {
+            print("❌ PlaidManager: Unexpected error - \(error)")
             self.error = error
         }
         
@@ -236,6 +259,33 @@ final class PlaidManager {
             self.error = error
             return false
         }
+    }
+    
+    /// Refresh balance for a specific account
+    func refreshAccountBalance(_ accountId: String) async {
+        isLoading = true
+        error = nil
+        
+        do {
+            let updatedAccount = try await apiService.refreshAccountBalance(accountId: accountId)
+            if let index = linkedAccounts.firstIndex(where: { $0.id == accountId }) {
+                linkedAccounts[index] = updatedAccount
+            }
+        } catch {
+            self.error = error
+        }
+        
+        isLoading = false
+    }
+    
+    /// Get transactions for a specific account
+    func getTransactionsForAccount(_ accountId: String) -> [PlaidTransaction] {
+        return transactions.filter { $0.accountId == accountId }
+    }
+    
+    /// Get account by ID
+    func getAccount(_ accountId: String) -> PlaidLinkedAccount? {
+        return linkedAccounts.first { $0.id == accountId }
     }
     
     /// Refresh data

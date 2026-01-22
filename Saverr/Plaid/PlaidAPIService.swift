@@ -25,6 +25,9 @@ protocol PlaidAPIServiceProtocol {
     /// Get all linked accounts
     func getLinkedAccounts() async throws -> [PlaidLinkedAccount]
     
+    /// Refresh account balance from Plaid
+    func refreshAccountBalance(accountId: String) async throws -> PlaidLinkedAccount
+    
     /// Unlink an account
     func unlinkAccount(accountId: String) async throws
 }
@@ -37,14 +40,15 @@ final class PlaidAPIService: PlaidAPIServiceProtocol {
     
     /// Base URL for your backend API
     /// TODO: Replace with your actual API Gateway URL
-    private let baseURL: String = "https://your-api-gateway.execute-api.us-east-1.amazonaws.com/prod"
+    private let baseURL: String
+    //     API Endpoint:          
     
     private let session: URLSession
     private let decoder: JSONDecoder
     private let encoder: JSONEncoder
     
     init(
-        baseURL: String = ProcessInfo.processInfo.environment["API_BASE_URL"] ?? "https://your-api-gateway.execute-api.us-east-1.amazonaws.com/prod",
+        baseURL: String = ProcessInfo.processInfo.environment["API_BASE_URL"] ?? "https://93bhx1f8z1.execute-api.us-east-1.amazonaws.com/dev",
         session: URLSession = .shared
     ) {
         self.baseURL = baseURL
@@ -128,6 +132,19 @@ final class PlaidAPIService: PlaidAPIServiceProtocol {
         let _: UnlinkResponse = try await delete(endpoint: "/accounts/\(accountId)")
     }
     
+    func refreshAccountBalance(accountId: String) async throws -> PlaidLinkedAccount {
+        struct RefreshResponse: Codable {
+            let account: PlaidLinkedAccount
+        }
+        
+        let response: RefreshResponse = try await post(
+            endpoint: "/accounts/\(accountId)/refresh",
+            body: EmptyBody()
+        )
+        
+        return response.account
+    }
+    
     // MARK: - Private Methods
     
     private struct EmptyBody: Codable {}
@@ -189,33 +206,62 @@ final class PlaidAPIService: PlaidAPIServiceProtocol {
     }
     
     private func performRequest<R: Decodable>(_ request: URLRequest) async throws -> R {
+        print("🌐 PlaidAPI Request: \(request.httpMethod ?? "?") \(request.url?.absoluteString ?? "?")")
+        
         let (data, response) = try await session.data(for: request)
         
         guard let httpResponse = response as? HTTPURLResponse else {
             throw PlaidServiceError.invalidResponse
         }
         
+        print("📥 PlaidAPI Response: Status \(httpResponse.statusCode)")
+        
         if httpResponse.statusCode == 401 {
+            print("❌ PlaidAPI: Unauthorized (401)")
             throw PlaidServiceError.unauthorized
+        }
+        
+        if httpResponse.statusCode == 403 {
+            print("❌ PlaidAPI: Forbidden (403)")
+            if let responseString = String(data: data, encoding: .utf8) {
+                print("   Response: \(responseString)")
+            }
         }
         
         if httpResponse.statusCode >= 400 {
             if let apiError = try? decoder.decode(PlaidAPIError.self, from: data) {
+                print("❌ PlaidAPI Error: \(apiError.errorDescription ?? "Unknown error")")
                 throw PlaidServiceError.apiError(apiError.errorDescription ?? "Unknown error")
             }
+            print("❌ PlaidAPI: Server error \(httpResponse.statusCode)")
             throw PlaidServiceError.serverError(httpResponse.statusCode)
         }
         
         do {
+            // Debug: print raw response for link-token endpoint
+            if let urlString = request.url?.absoluteString, urlString.contains("link-token") {
+                if let responseString = String(data: data, encoding: .utf8) {
+                    print("📦 PlaidAPI Raw Response: \(responseString)")
+                }
+            }
             return try decoder.decode(R.self, from: data)
         } catch {
+            print("❌ PlaidAPI: Decoding error - \(error)")
             throw PlaidServiceError.decodingError(error)
         }
     }
     
     private func addAuthHeader(to request: inout URLRequest) {
-        // Add your auth token here if needed
-        // Example: request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        // Get access token from keychain
+        if let accessToken = KeychainService.shared.getAccessToken() {
+            // Print first and last few characters for debugging (don't print full token for security)
+            let tokenPreview = accessToken.count > 20 ? "\(accessToken.prefix(10))...\(accessToken.suffix(10))" : accessToken
+            print("🔐 PlaidAPI: Adding Bearer token (preview: \(tokenPreview))")
+            print("🔐 PlaidAPI: Token length: \(accessToken.count) characters")
+            request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        } else {
+            print("❌ PlaidAPI: No access token found in keychain!")
+        }
     }
 }
 

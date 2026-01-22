@@ -224,7 +224,12 @@ struct SpendingDashboardView: View {
             }
             
             ForEach(plaidManager.recentTransactions) { transaction in
-                TransactionCard(transaction: transaction)
+                NavigationLink {
+                    TransactionDetailView(transaction: transaction)
+                } label: {
+                    TransactionCard(transaction: transaction)
+                }
+                .buttonStyle(.plain)
             }
         }
     }
@@ -233,12 +238,29 @@ struct SpendingDashboardView: View {
     
     private var linkedAccountsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Linked Accounts")
-                .font(.headline)
-                .foregroundStyle(colorScheme == .dark ? Color.textPrimaryDark : Color.textPrimaryLight)
+            HStack {
+                Text("Linked Accounts")
+                    .font(.headline)
+                    .foregroundStyle(colorScheme == .dark ? Color.textPrimaryDark : Color.textPrimaryLight)
+                
+                Spacer()
+                
+                NavigationLink {
+                    LinkedAccountsView()
+                } label: {
+                    Text("Manage")
+                        .font(.subheadline)
+                        .foregroundStyle(Color.accentPrimary)
+                }
+            }
             
             ForEach(plaidManager.linkedAccounts) { account in
-                AccountSummaryCard(account: account)
+                NavigationLink {
+                    PlaidAccountDetailView(account: account)
+                } label: {
+                    AccountSummaryCard(account: account)
+                }
+                .buttonStyle(.plain)
             }
         }
     }
@@ -406,16 +428,123 @@ struct AllTransactionsView: View {
     @Environment(\.plaidManager) private var plaidManager
     @Environment(\.colorScheme) private var colorScheme
     
+    @State private var searchText = ""
+    @State private var selectedFilter: TransactionFilter = .all
+    
+    enum TransactionFilter: String, CaseIterable {
+        case all = "All"
+        case spending = "Spending"
+        case income = "Income"
+        case pending = "Pending"
+    }
+    
+    var filteredTransactions: [PlaidTransaction] {
+        var result = plaidManager.transactions
+        
+        // Apply search filter
+        if !searchText.isEmpty {
+            result = result.filter { transaction in
+                transaction.displayName.localizedCaseInsensitiveContains(searchText) ||
+                (transaction.primaryCategory?.localizedCaseInsensitiveContains(searchText) ?? false)
+            }
+        }
+        
+        // Apply category filter
+        switch selectedFilter {
+        case .all:
+            break
+        case .spending:
+            result = result.filter { !$0.isIncome }
+        case .income:
+            result = result.filter { $0.isIncome }
+        case .pending:
+            result = result.filter { $0.pending }
+        }
+        
+        return result
+    }
+    
     var body: some View {
-        ScrollView {
-            VStack(spacing: 8) {
-                ForEach(plaidManager.transactions) { transaction in
-                    TransactionCard(transaction: transaction)
+        ZStack {
+            (colorScheme == .dark ? Color.backgroundDark : Color.backgroundLight)
+                .ignoresSafeArea()
+            
+            VStack(spacing: 0) {
+                // Search Bar
+                HStack(spacing: 12) {
+                    Image(systemName: "magnifyingglass")
+                        .foregroundStyle(colorScheme == .dark ? Color.textSecondaryDark : Color.textSecondaryLight)
+                    
+                    TextField("Search transactions", text: $searchText)
+                        .textFieldStyle(.plain)
+                    
+                    if !searchText.isEmpty {
+                        Button {
+                            searchText = ""
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundStyle(colorScheme == .dark ? Color.textSecondaryDark : Color.textSecondaryLight)
+                        }
+                    }
+                }
+                .padding(12)
+                .background(colorScheme == .dark ? Color.cardBackgroundDark : Color.cardBackgroundLight)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .padding(.horizontal)
+                .padding(.top, 8)
+                
+                // Filter Pills
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(TransactionFilter.allCases, id: \.self) { filter in
+                            Button {
+                                selectedFilter = filter
+                            } label: {
+                                Text(filter.rawValue)
+                                    .font(.subheadline)
+                                    .fontWeight(selectedFilter == filter ? .semibold : .regular)
+                                    .padding(.horizontal, 16)
+                                    .padding(.vertical, 8)
+                                    .background(selectedFilter == filter ? Color.accentPrimary : (colorScheme == .dark ? Color.cardBackgroundDark : Color.cardBackgroundLight))
+                                    .foregroundStyle(selectedFilter == filter ? .white : (colorScheme == .dark ? Color.textPrimaryDark : Color.textPrimaryLight))
+                                    .clipShape(Capsule())
+                            }
+                        }
+                    }
+                    .padding(.horizontal)
+                    .padding(.vertical, 12)
+                }
+                
+                // Transactions List
+                ScrollView {
+                    if filteredTransactions.isEmpty {
+                        VStack(spacing: 16) {
+                            Image(systemName: "doc.text.magnifyingglass")
+                                .font(.system(size: 40))
+                                .foregroundStyle(Color.accentPrimary.opacity(0.5))
+                            
+                            Text(searchText.isEmpty ? "No transactions" : "No matching transactions")
+                                .font(.subheadline)
+                                .foregroundStyle(colorScheme == .dark ? Color.textSecondaryDark : Color.textSecondaryLight)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 60)
+                    } else {
+                        LazyVStack(spacing: 8) {
+                            ForEach(filteredTransactions) { transaction in
+                                NavigationLink {
+                                    TransactionDetailView(transaction: transaction)
+                                } label: {
+                                    TransactionCard(transaction: transaction)
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                        .padding()
+                    }
                 }
             }
-            .padding()
         }
-        .background(colorScheme == .dark ? Color.backgroundDark : Color.backgroundLight)
         .navigationTitle("All Transactions")
     }
 }

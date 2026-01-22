@@ -98,6 +98,36 @@ final class MockPlaidAPIService: PlaidAPIServiceProtocol {
         mockAccounts.removeAll { $0.id == accountId }
     }
     
+    func refreshAccountBalance(accountId: String) async throws -> PlaidLinkedAccount {
+        try await Task.sleep(nanoseconds: simulatedDelay)
+        
+        guard let index = mockAccounts.firstIndex(where: { $0.id == accountId }) else {
+            throw PlaidServiceError.noLinkedAccounts
+        }
+        
+        // Simulate balance update with slight random change
+        let account = mockAccounts[index]
+        let balanceChange = Double.random(in: -100...100)
+        
+        let updatedAccount = PlaidLinkedAccount(
+            id: account.id,
+            accountId: account.accountId,
+            name: account.name,
+            officialName: account.officialName,
+            type: account.type,
+            subtype: account.subtype,
+            mask: account.mask,
+            institutionId: account.institutionId,
+            institutionName: account.institutionName,
+            currentBalance: (account.currentBalance ?? 0) + balanceChange,
+            availableBalance: (account.availableBalance ?? 0) + balanceChange,
+            isoCurrencyCode: account.isoCurrencyCode
+        )
+        
+        mockAccounts[index] = updatedAccount
+        return updatedAccount
+    }
+    
     // MARK: - Mock Data Generation
     
     private func generateMockData() {
