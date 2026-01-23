@@ -7,6 +7,7 @@
 
 import SwiftUI
 import SwiftData
+import LinkKit
 
 @main
 struct SaverrApp: App {
@@ -37,6 +38,10 @@ struct SaverrApp: App {
                 .environment(\.services, ServiceContainer.shared)
                 .environment(\.authManager, authManager)
                 .environment(\.plaidManager, plaidManager)
+                .onOpenURL { url in
+                    // Handle Plaid OAuth redirect
+                    print("🔗 App received OAuth redirect URL: \(url)")
+                }
         }
         .modelContainer(sharedModelContainer)
     }

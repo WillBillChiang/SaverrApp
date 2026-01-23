@@ -33,9 +33,22 @@
 		CDF335DC2F21639A00C23E6D /* SaverrUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SaverrUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		678A77D62F241D1700D9B268 /* Exceptions for "Saverr" folder in "Saverr" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = CDF335C22F21639800C23E6D /* Saverr */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		CDF335C52F21639800C23E6D /* Saverr */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				678A77D62F241D1700D9B268 /* Exceptions for "Saverr" folder in "Saverr" target */,
+			);
 			path = Saverr;
 			sourceTree = "<group>";
 		};
@@ -409,6 +422,7 @@
 				DEVELOPMENT_TEAM = C76548RK5M;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Saverr/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -441,6 +455,7 @@
 				DEVELOPMENT_TEAM = C76548RK5M;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Saverr/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
