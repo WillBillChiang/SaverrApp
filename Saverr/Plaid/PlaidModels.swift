@@ -31,41 +31,32 @@ struct AccountLinkResponse: Codable {
 
 struct PlaidLinkedAccount: Codable, Identifiable {
     let id: String
-    let accountId: String
-    let name: String
-    let officialName: String?
-    let type: String
-    let subtype: String?
-    let mask: String?
-    let institutionId: String?
+    let accountName: String
+    let accountType: String
+    let balance: Double?
     let institutionName: String?
-    let currentBalance: Double?
-    let availableBalance: Double?
-    let isoCurrencyCode: String?
-    
+    let institutionLogo: String?
+    let accountNumberLast4: String?
+    let lastUpdated: String?
+    let isLinked: Bool?
+
     enum CodingKeys: String, CodingKey {
         case id
-        case accountId = "account_id"
-        case name
-        case officialName = "official_name"
-        case type
-        case subtype
-        case mask
-        case institutionId = "institution_id"
+        case accountName = "account_name"
+        case accountType = "account_type"
+        case balance
         case institutionName = "institution_name"
-        case currentBalance = "current_balance"
-        case availableBalance = "available_balance"
-        case isoCurrencyCode = "iso_currency_code"
+        case institutionLogo = "institution_logo"
+        case accountNumberLast4 = "account_number_last4"
+        case lastUpdated = "last_updated"
+        case isLinked = "is_linked"
     }
-    
-    /// Convert Plaid account type to app's AccountType
+
+    /// Convert API account type to app's AccountType
     var appAccountType: BankAccount.AccountType {
-        switch type.lowercased() {
-        case "depository":
-            if subtype?.lowercased() == "savings" {
-                return .savings
-            }
-            return .checking
+        switch accountType.lowercased() {
+        case "savings":
+            return .savings
         case "credit":
             return .credit
         case "investment", "brokerage":
@@ -74,10 +65,25 @@ struct PlaidLinkedAccount: Codable, Identifiable {
             return .checking
         }
     }
-    
-    /// Best available balance
+
+    /// Display balance
     var displayBalance: Double {
-        availableBalance ?? currentBalance ?? 0
+        balance ?? 0
+    }
+
+    /// Display name (backward compatibility)
+    var name: String {
+        accountName
+    }
+
+    /// Mask (backward compatibility with account_number_last4)
+    var mask: String? {
+        accountNumberLast4
+    }
+
+    /// Account type string (backward compatibility)
+    var type: String {
+        accountType
     }
 }
 

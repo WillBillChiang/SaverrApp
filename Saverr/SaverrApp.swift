@@ -39,8 +39,8 @@ struct SaverrApp: App {
                 .environment(\.authManager, authManager)
                 .environment(\.plaidManager, plaidManager)
                 .onOpenURL { url in
-                    // Handle Plaid OAuth redirect
-                    print("🔗 App received OAuth redirect URL: \(url)")
+                    // OAuth redirects are handled automatically by Plaid SDK v5+
+                    print("🔗 App received URL: \(url)")
                 }
         }
         .modelContainer(sharedModelContainer)

@@ -34,7 +34,7 @@ struct PlaidAccountDetailView: View {
     }
     
     var accountTransactions: [PlaidTransaction] {
-        let allTransactions = plaidManager.getTransactionsForAccount(account.accountId)
+        let allTransactions = plaidManager.getTransactionsForAccount(account.id)
         let cutoffDate = Calendar.current.date(byAdding: .day, value: -selectedTimeRange.days, to: Date()) ?? Date()
         
         var filtered = allTransactions.filter { transaction in
@@ -209,18 +209,8 @@ struct PlaidAccountDetailView: View {
                         
                         Spacer()
                         
-                        if let available = account.availableBalance, available != account.currentBalance {
-                            VStack(alignment: .trailing, spacing: 4) {
-                                Text("Available")
-                                    .font(.caption)
-                                    .foregroundStyle(colorScheme == .dark ? Color.textSecondaryDark : Color.textSecondaryLight)
-                                
-                                Text(available.asCurrency)
-                                    .font(.title3)
-                                    .fontWeight(.semibold)
-                                    .foregroundStyle(Color.successColor)
-                            }
-                        }
+                        // Note: Backend API returns single balance field
+                        // Available balance section removed as API doesn't provide separate available/current balances
                     }
                 }
             }
@@ -412,17 +402,14 @@ struct PlaidAccountDetailView: View {
     PlaidAccountDetailView(
         account: PlaidLinkedAccount(
             id: "acc_1",
-            accountId: "account_1",
-            name: "Checking",
-            officialName: "TOTAL CHECKING",
-            type: "depository",
-            subtype: "checking",
-            mask: "1234",
-            institutionId: "ins_3",
+            accountName: "Checking",
+            accountType: "checking",
+            balance: 5432.10,
             institutionName: "Chase",
-            currentBalance: 5432.10,
-            availableBalance: 5230.00,
-            isoCurrencyCode: "USD"
+            institutionLogo: "building.columns",
+            accountNumberLast4: "1234",
+            lastUpdated: "2024-01-21T12:00:00Z",
+            isLinked: true
         )
     )
     .environment(\.plaidManager, PlaidManager())

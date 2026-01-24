@@ -19,7 +19,6 @@ struct PlaidLinkButton: View {
     @State private var isLoading = false
     @State private var showError = false
     @State private var errorMessage = ""
-    @State private var linkHandler: Handler?  // Keep handler alive while Plaid Link is open
     
     var body: some View {
         Button {
@@ -87,14 +86,14 @@ struct PlaidLinkButton: View {
                 print("   Accounts: \(linkSuccess.metadata.accounts.count)")
                 
                 isLoading = false
-                self.linkHandler = nil  // Release handler
+                plaidManager.linkHandler = nil  // Release handler
                 onSuccess(linkSuccess.publicToken)
             }
         )
         
         linkConfiguration.onExit = { linkExit in
             isLoading = false
-            self.linkHandler = nil  // Release handler
+            plaidManager.linkHandler = nil  // Release handler
             
             if let error = linkExit.error {
                 print("❌ Plaid Link Error: \(error.localizedDescription)")
@@ -116,16 +115,16 @@ struct PlaidLinkButton: View {
         switch result {
         case .success(let handler):
             print("✅ Plaid handler created successfully")
-            
-            // Store handler to keep it alive while Plaid Link is open
-            self.linkHandler = handler
+
+            // Store handler in PlaidManager for OAuth redirect handling
+            plaidManager.linkHandler = handler
             
             // Get the top view controller to present from
             guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
                   let rootViewController = windowScene.windows.first?.rootViewController else {
                 print("❌ Could not find root view controller")
                 isLoading = false
-                self.linkHandler = nil
+                plaidManager.linkHandler = nil
                 errorMessage = "Could not present Plaid Link"
                 showError = true
                 return

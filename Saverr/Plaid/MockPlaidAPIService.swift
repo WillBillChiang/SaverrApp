@@ -28,24 +28,21 @@ final class MockPlaidAPIService: PlaidAPIServiceProtocol {
     
     func linkAccount(publicToken: String) async throws -> AccountLinkResponse {
         try await Task.sleep(nanoseconds: simulatedDelay * 2)
-        
+
         let newAccount = PlaidLinkedAccount(
             id: UUID().uuidString,
-            accountId: "acc_\(UUID().uuidString.prefix(8))",
-            name: "Checking Account",
-            officialName: "TOTAL CHECKING",
-            type: "depository",
-            subtype: "checking",
-            mask: "1234",
-            institutionId: "ins_3",
+            accountName: "Checking Account",
+            accountType: "checking",
+            balance: 5432.10,
             institutionName: "Chase",
-            currentBalance: 5432.10,
-            availableBalance: 5230.00,
-            isoCurrencyCode: "USD"
+            institutionLogo: "building.columns",
+            accountNumberLast4: "1234",
+            lastUpdated: ISO8601DateFormatter().string(from: Date()),
+            isLinked: true
         )
-        
+
         mockAccounts.append(newAccount)
-        
+
         return AccountLinkResponse(
             account: newAccount,
             linkStatus: "connected"
@@ -100,30 +97,27 @@ final class MockPlaidAPIService: PlaidAPIServiceProtocol {
     
     func refreshAccountBalance(accountId: String) async throws -> PlaidLinkedAccount {
         try await Task.sleep(nanoseconds: simulatedDelay)
-        
+
         guard let index = mockAccounts.firstIndex(where: { $0.id == accountId }) else {
             throw PlaidServiceError.noLinkedAccounts
         }
-        
+
         // Simulate balance update with slight random change
         let account = mockAccounts[index]
         let balanceChange = Double.random(in: -100...100)
-        
+
         let updatedAccount = PlaidLinkedAccount(
             id: account.id,
-            accountId: account.accountId,
-            name: account.name,
-            officialName: account.officialName,
-            type: account.type,
-            subtype: account.subtype,
-            mask: account.mask,
-            institutionId: account.institutionId,
+            accountName: account.accountName,
+            accountType: account.accountType,
+            balance: (account.balance ?? 0) + balanceChange,
             institutionName: account.institutionName,
-            currentBalance: (account.currentBalance ?? 0) + balanceChange,
-            availableBalance: (account.availableBalance ?? 0) + balanceChange,
-            isoCurrencyCode: account.isoCurrencyCode
+            institutionLogo: account.institutionLogo,
+            accountNumberLast4: account.accountNumberLast4,
+            lastUpdated: ISO8601DateFormatter().string(from: Date()),
+            isLinked: account.isLinked
         )
-        
+
         mockAccounts[index] = updatedAccount
         return updatedAccount
     }
@@ -135,48 +129,39 @@ final class MockPlaidAPIService: PlaidAPIServiceProtocol {
         mockAccounts = [
             PlaidLinkedAccount(
                 id: "acc_1",
-                accountId: "account_checking_1",
-                name: "Checking",
-                officialName: "TOTAL CHECKING",
-                type: "depository",
-                subtype: "checking",
-                mask: "1234",
-                institutionId: "ins_3",
+                accountName: "Checking",
+                accountType: "checking",
+                balance: 5432.10,
                 institutionName: "Chase",
-                currentBalance: 5432.10,
-                availableBalance: 5230.00,
-                isoCurrencyCode: "USD"
+                institutionLogo: "building.columns",
+                accountNumberLast4: "1234",
+                lastUpdated: "2024-01-21T12:00:00Z",
+                isLinked: true
             ),
             PlaidLinkedAccount(
                 id: "acc_2",
-                accountId: "account_savings_1",
-                name: "Savings",
-                officialName: "CHASE SAVINGS",
-                type: "depository",
-                subtype: "savings",
-                mask: "5678",
-                institutionId: "ins_3",
+                accountName: "Savings",
+                accountType: "savings",
+                balance: 12500.00,
                 institutionName: "Chase",
-                currentBalance: 12500.00,
-                availableBalance: 12500.00,
-                isoCurrencyCode: "USD"
+                institutionLogo: "building.columns",
+                accountNumberLast4: "5678",
+                lastUpdated: "2024-01-21T12:00:00Z",
+                isLinked: true
             ),
             PlaidLinkedAccount(
                 id: "acc_3",
-                accountId: "account_credit_1",
-                name: "Sapphire Preferred",
-                officialName: "CHASE SAPPHIRE PREFERRED",
-                type: "credit",
-                subtype: "credit card",
-                mask: "9012",
-                institutionId: "ins_3",
+                accountName: "Sapphire Preferred",
+                accountType: "credit",
+                balance: -1250.50,
                 institutionName: "Chase",
-                currentBalance: -1250.50,
-                availableBalance: 8749.50,
-                isoCurrencyCode: "USD"
+                institutionLogo: "building.columns",
+                accountNumberLast4: "9012",
+                lastUpdated: "2024-01-21T12:00:00Z",
+                isLinked: true
             )
         ]
-        
+
         // Generate mock transactions
         mockTransactions = generateMockTransactions()
     }
@@ -220,7 +205,7 @@ final class MockPlaidAPIService: PlaidAPIServiceProtocol {
                 let transaction = PlaidTransaction(
                     id: UUID().uuidString,
                     transactionId: "tx_\(UUID().uuidString.prefix(8))",
-                    accountId: mockAccounts.randomElement()?.accountId ?? "acc_1",
+                    accountId: mockAccounts.randomElement()?.id ?? "acc_1",
                     amount: amount,
                     date: dateFormatter.string(from: date),
                     name: merchant.name.uppercased(),

@@ -7,6 +7,7 @@
 
 import Foundation
 import SwiftUI
+import LinkKit
 
 @MainActor
 @Observable
@@ -22,6 +23,7 @@ final class PlaidManager {
     var isSyncing = false
     var error: Error?
     var linkToken: String?
+    var linkHandler: Handler?
     
     // MARK: - Computed Properties
     
@@ -72,7 +74,7 @@ final class PlaidManager {
         
         isLoading = false
     }
-    
+
     /// Complete the linking process with the public token from Plaid Link
     func completeLinking(publicToken: String) async -> Bool {
         isLinking = true
